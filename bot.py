@@ -20,7 +20,7 @@ def get_exchange_rates():
         print(f"Error fetching rates: {e}")
         return None
 
-# Fungsi template konversi universal
+# Fungsi template konversi universal yang lebih detail
 async def convert_currency(update: Update, context: ContextTypes.DEFAULT_TYPE, base_curr: str):
     if not context.args:
         await update.message.reply_text(
@@ -35,8 +35,15 @@ async def convert_currency(update: Update, context: ContextTypes.DEFAULT_TYPE, b
         await update.message.reply_text(f"Masukkan angka yang valid ya! Contoh: `/{base_curr.lower()} 1000`", parse_mode="Markdown")
         return
 
-    rates = get_exchange_rates()
-    if not rates:
+    url = "https://api.exchangerate-api.com/v4/latest/USD"
+    try:
+        response = requests.get(url)
+        data = response.json()
+        rates = data.get("rates", {})
+        # Ambil tanggal update dari API
+        rate_date = data.get("date", "Hari ini")
+    except Exception as e:
+        print(f"Error fetching rates: {e}")
         await update.message.reply_text("Gagal mengambil data kurs terbaru. Coba lagi nanti.")
         return
 
@@ -55,14 +62,14 @@ async def convert_currency(update: Update, context: ContextTypes.DEFAULT_TYPE, b
         val_thb = amount_in_usd * rates.get("THB", 0)
         val_khr = amount_in_usd * rates.get("KHR", 0) # Riel Kamboja
 
-        # Format pesan balasan
+        # Format pesan balasan dengan tambahan tanggal kurs
         message = (
             f"💱 **Konversi Mata Uang ({amount:,.2f} {base_curr})**\n\n"
             f"🇺🇸 USD: $ {val_usd:,.2f}\n"
             f"🇮🇩 IDR: Rp {val_idr:,.2f}\n"
             f"🇹🇭 THB: ฿ {val_thb:,.2f}\n"
             f"🇰🇭 KHR: ៛ {val_khr:,.0f}\n\n"
-            f"_Rate berdasarkan kurs real-time._"
+            f"📅 _Kurs per tanggal: {rate_date}_"
         )
 
         await update.message.reply_text(message, parse_mode="Markdown")
